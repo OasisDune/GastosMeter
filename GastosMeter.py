@@ -13,20 +13,17 @@ captcha_image_ref = None
 
 
 def center_window(window, width, height, offset_x=0):
-    # Set initial geometry
-    window.geometry(f'{width}x{height}')
-
-    # Update the window's size and position
-    window.update_idletasks()  # Make sure geometry is updated
+    # Get the screen dimensions
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
 
-    # Calculate position to center window
-    x = (screen_width - width) // 2 + offset_x  # Add offset to x position
+    # Calculate the position to center the window
+    x = (screen_width - width) // 2 + offset_x  # Add the offset to move the window
     y = (screen_height - height) // 2
 
-    # Set window geometry with the new position and size
+    # Set the window geometry
     window.geometry(f'{width}x{height}+{x}+{y}')
+
 
 
 #generate captcha(6 random letters and numbers, different sizes)
