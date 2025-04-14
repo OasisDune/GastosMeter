@@ -11,6 +11,24 @@ ADMIN_CREDENTIALS = {"gastosmeter": "admin123"}
 captcha_code = ""
 captcha_image_ref = None
 
+
+def center_window(window, width, height, offset_x=0):
+    # Set initial geometry
+    window.geometry(f'{width}x{height}')
+
+    # Update the window's size and position
+    window.update_idletasks()  # Make sure geometry is updated
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+
+    # Calculate position to center window
+    x = (screen_width - width) // 2 + offset_x  # Add offset to x position
+    y = (screen_height - height) // 2
+
+    # Set window geometry with the new position and size
+    window.geometry(f'{width}x{height}+{x}+{y}')
+
+
 #generate captcha(6 random letters and numbers, different sizes)
 def generate_captcha():
     global captcha_code
@@ -69,6 +87,7 @@ def open_captcha_window():
     captcha_window = Toplevel(root)
     captcha_window.title("Gastos Meter - CAPTCHA Verification")
     captcha_window.geometry("350x380")
+    center_window(captcha_window, 350, 380, offset_x=30)
     captcha_window.configure(bg="white")
 
     global captcha_image_ref
@@ -167,6 +186,7 @@ ctk.set_default_color_theme("blue")
 
 root = ctk.CTk()
 root.geometry("600x625")
+center_window(root, 600, 625, offset_x=50)
 root.configure(bg="#e1b5b5")
 root.resizable(False, False)
 show_login_page()
