@@ -189,3 +189,4 @@ root.resizable(False, False)
 show_login_page()
 
 root.mainloop()
+#still fixing captcha window(should be centered)
