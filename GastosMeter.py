@@ -153,11 +153,57 @@ def show_main_page():
     label.image = photo
     label.pack()
 
+def register_user(name, username, password):
+    conn = connect_to_db()  # Make sure the connection is established
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO users (name, username, password)
+                VALUES (%s, %s, %s)
+            """, (name, username, password))
+            conn.commit()
+            cur.close()
+            messagebox.showinfo("Success", "Registration successful!")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
+        finally:
+            conn.close()
+
+
+
+def show_sign_up_page():
+    # clear existing widgets
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    title = ctk.CTkLabel(root, text="Sign Up", fg_color="transparent", text_color="#d0637c", font=("Arial", 40, "bold"))
+    title.place(relx=0.5, rely=0.15, anchor="center")
+
+    # Name entry field
+    name_entry = ctk.CTkEntry(root, placeholder_text="Full Name")
+    name_entry.place(relx=0.5, rely=0.3, anchor="center")
+
+    # Email entry field
+    email_entry = ctk.CTkEntry(root, placeholder_text="Email Address")
+    email_entry.place(relx=0.5, rely=0.4, anchor="center")
+
+    # Password entry field
+    password_entry = ctk.CTkEntry(root, placeholder_text="Password", show="•")
+    password_entry.place(relx=0.5, rely=0.5, anchor="center")
+
+    # Register button
+    register_button = ctk.CTkButton(root, text='Register', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=lambda: register_user(name_entry.get(), email_entry.get(), password_entry.get()))
+    register_button.place(relx=0.5, rely=0.6, anchor="center")
+
+
+
+
+
 def login():
     username = username_entry.get()
     password = password_entry.get()
 
-    # Check if fields are filled
     if not username or not password:
         messagebox.showerror("Error", "Please enter both username and password.")
         return
@@ -168,18 +214,20 @@ def login():
         messagebox.showerror("Error", "Failed to connect to the database.")
         return
 
-    # Query the database for user credentials
+    # Query the database for user credentials (username and password)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+    cur.execute("SELECT username, password, name FROM users WHERE username = %s AND password = %s", (username, password))
     user = cur.fetchone()
     cur.close()
     conn.close()
 
     if user:
-        messagebox.showinfo("Success", f"Login successful! Welcome, {username}!")
+        name = user[2]  # `name` is the 3rd column in the result (index 2)
+        messagebox.showinfo("Success", f"Login successful! Welcome, {name}!")
         open_captcha_window()  # Open captcha window after successful login
     else:
         messagebox.showerror("Error", "Invalid username or password. Please try again.")
+
 
 
 def show_login_page():
