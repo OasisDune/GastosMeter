@@ -101,7 +101,7 @@ def open_captcha_window():
     captcha_window.title("Gastos Meter - CAPTCHA Verification")
     captcha_window.geometry("350x380")
     captcha_window.update_idletasks()
-    center_window(captcha_window, 350, 380, offset_x=30)
+    center_window(captcha_window, 350, 380)
     captcha_window.configure(bg="white")
 
     global captcha_image_ref
@@ -222,9 +222,9 @@ def show_sign_up_page():
 
 
 
-def register_and_verify_captcha(name, username, password):
+def register_and_verify_captcha(name, email, username, password):
     # Register the user first
-    register_user(name, username, password)
+    register_user(name, email, username, password)
 
     # After successful registration, show CAPTCHA window
     open_captcha_window()
