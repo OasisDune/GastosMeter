@@ -4,9 +4,24 @@ from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageFilter
 import random #for captcha
 import string #for captcha
 import os
+import psycopg2
 
-#admin creds(para sa login)
-ADMIN_CREDENTIALS = {"gastosmeter": "admin123"}
+# Function to connect to the PostgreSQL database
+def connect_to_db():
+    try:
+        # Replace with your actual credentials
+        conn = psycopg2.connect(
+            dbname="finance_track",
+            user="postgres",  # your PostgreSQL username
+            password="rednaxela",  # your PostgreSQL password
+            host="localhost",  # or your database server IP
+            port="5432"  # default PostgreSQL port
+        )
+        return conn
+    except Exception as e:
+        print("Database connection failed:", e)
+        return None
+
 
 captcha_code = ""
 captcha_image_ref = None
@@ -84,6 +99,7 @@ def open_captcha_window():
     captcha_window = Toplevel(root)
     captcha_window.title("Gastos Meter - CAPTCHA Verification")
     captcha_window.geometry("350x380")
+    captcha_window.update_idletasks()
     center_window(captcha_window, 350, 380, offset_x=30)
     captcha_window.configure(bg="white")
 
@@ -138,19 +154,33 @@ def show_main_page():
     label.pack()
 
 def login():
-    #process po of login and opens the captcha window if correct admin login(credentials)
     username = username_entry.get()
     password = password_entry.get()
 
-    #shows message box(if inputs are: left unfilled, correct credentials, wrong credentials)
+    # Check if fields are filled
     if not username or not password:
         messagebox.showerror("Error", "Please enter both username and password.")
         return
-    if username in ADMIN_CREDENTIALS and ADMIN_CREDENTIALS[username] == password:
-        messagebox.showinfo("Success", f"Admin Login successful! Welcome, {username}!")
-        open_captcha_window()
+
+    # Connect to the database
+    conn = connect_to_db()
+    if not conn:
+        messagebox.showerror("Error", "Failed to connect to the database.")
+        return
+
+    # Query the database for user credentials
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if user:
+        messagebox.showinfo("Success", f"Login successful! Welcome, {username}!")
+        open_captcha_window()  # Open captcha window after successful login
     else:
         messagebox.showerror("Error", "Invalid username or password. Please try again.")
+
 
 def show_login_page():
     #shows login window
