@@ -27,17 +27,18 @@ captcha_code = ""
 captcha_image_ref = None
 
 
-def center_window(window, width, height, offset_x=0):
+def center_window(window, width, height):
     # Get the screen dimensions
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
 
     # Calculate the position to center the window
-    x = (screen_width - width) // 2 + offset_x  # Add the offset to move the window
+    x = (screen_width - width) // 2
     y = (screen_height - height) // 2
 
     # Set the window geometry
     window.geometry(f'{width}x{height}+{x}+{y}')
+
 
 
 
@@ -153,15 +154,15 @@ def show_main_page():
     label.image = photo
     label.pack()
 
-def register_user(name, username, password):
+def register_user(name, email, username, password):
     conn = connect_to_db()  # Make sure the connection is established
     if conn:
         try:
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO users (name, username, password)
-                VALUES (%s, %s, %s)
-            """, (name, username, password))
+                INSERT INTO users (name, email, username, password)
+                VALUES (%s, %s, %s, %s)
+            """, (name, email, username, password))
             conn.commit()
             cur.close()
             messagebox.showinfo("Success", "Registration successful!")
@@ -185,19 +186,48 @@ def show_sign_up_page():
     name_entry.place(relx=0.5, rely=0.3, anchor="center")
 
     # Email entry field
-    email_entry = ctk.CTkEntry(root, placeholder_text="Email Address")
+    email_entry = ctk.CTkEntry(root, placeholder_text="Email")
     email_entry.place(relx=0.5, rely=0.4, anchor="center")
+
+    # Username entry field
+    username_entry = ctk.CTkEntry(root, placeholder_text="Username")
+    username_entry.place(relx=0.5, rely=0.5, anchor="center")
 
     # Password entry field
     password_entry = ctk.CTkEntry(root, placeholder_text="Password", show="•")
-    password_entry.place(relx=0.5, rely=0.5, anchor="center")
+    password_entry.place(relx=0.5, rely=0.6, anchor="center")
+
+    # Error label
+    error_label = ctk.CTkLabel(root, text="", text_color="red", font=("Arial", 12))
+    error_label.place(relx=0.5, rely=0.7, anchor="center")
 
     # Register button
-    register_button = ctk.CTkButton(root, text='Register', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=lambda: register_user(name_entry.get(), email_entry.get(), password_entry.get()))
-    register_button.place(relx=0.5, rely=0.6, anchor="center")
+    def register_button_click():
+        name = name_entry.get().strip()
+        email = email_entry.get().strip()
+        username = username_entry.get().strip()
+        password = password_entry.get().strip()
+
+        # Validate that none of the fields are empty
+        if not name or not email or not username or not password:
+            error_label.configure(text="Please fill in all fields.")
+        else:
+            error_label.configure(text="")  # Clear error message
+            # Proceed with registration and show CAPTCHA window
+            register_and_verify_captcha(name, email, username, password)
+
+    register_button = ctk.CTkButton(root, text='Register', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=register_button_click)
+    register_button.place(relx=0.5, rely=0.8, anchor="center")
 
 
 
+
+def register_and_verify_captcha(name, username, password):
+    # Register the user first
+    register_user(name, username, password)
+
+    # After successful registration, show CAPTCHA window
+    open_captcha_window()
 
 
 def login():
@@ -260,6 +290,41 @@ def show_login_page():
     sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
     sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)  # Place below the login button
 
+    forgot_password_button = ctk.CTkButton(label_frame, text="Forgot Password?", fg_color="transparent", text_color="black", font=("Arial", 12, "italic"), command=show_forgot_password_page)
+    forgot_password_button.grid(row=5, column=0, columnspan=2, pady=10)
+
+
+
+def show_forgot_password_page():
+    # Clear the current window
+    for widget in root.winfo_children():
+        widget.destroy()
+
+    title = ctk.CTkLabel(root, text="Forgot Password", fg_color="transparent", text_color="#d0637c", font=("Arial", 40, "bold"))
+    title.place(relx=0.5, rely=0.15, anchor="center")
+
+    # Email or Username entry field
+    email_entry = ctk.CTkEntry(root, placeholder_text="Enter your email/username")
+    email_entry.place(relx=0.5, rely=0.3, anchor="center")
+
+    # Submit button for reset
+    submit_button = ctk.CTkButton(root, text="Submit", fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=lambda: reset_password(email_entry.get()))
+    submit_button.place(relx=0.5, rely=0.4, anchor="center")
+
+    # Back to login button
+    back_button = ctk.CTkButton(root, text="Back to Login", fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_login_page)
+    back_button.place(relx=0.5, rely=0.5, anchor="center")
+
+def reset_password(email_or_username):
+    if not email_or_username:
+        messagebox.showerror("Error", "Please enter your email or username.")
+        return
+
+    # Here you can implement logic to send a reset email or generate a temporary password
+    # For now, we'll just show a success message.
+    messagebox.showinfo("Success", f"Password reset instructions have been sent to {email_or_username}.")
+    show_login_page()  # After reset, go back to the login page
+
 
 
 ctk.set_appearance_mode("light") #we used customtkinter for the theme of our software.
@@ -267,7 +332,7 @@ ctk.set_default_color_theme("blue")
 
 root = ctk.CTk()
 root.geometry("600x625")
-center_window(root, 600, 625, offset_x=50)
+center_window(root, 600, 625)
 root.configure(bg="#e1b5b5")
 root.resizable(False, False)
 show_login_page()
