@@ -231,9 +231,9 @@ def login():
 
 
 def show_login_page():
-    #shows login window
+    # Shows login window
     for widget in root.winfo_children():
-        widget.destroy() # clear the current window before the new window
+        widget.destroy()  # Clear the current window before the new window
     root.title("Gastos Meter - Login")
     root.configure(bg="#FF7AA2")
 
@@ -253,8 +253,14 @@ def show_login_page():
     password_entry = ctk.CTkEntry(label_frame, placeholder_text="Password", show="•")
     password_entry.grid(row=2, column=0, columnspan=2, padx=5, pady=10)
 
-    login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"),hover_color="#E6B2BA", command=login)
+    login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=login)
     login_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+    # Add a Sign Up button
+    sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
+    sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)  # Place below the login button
+
+
 
 ctk.set_appearance_mode("light") #we used customtkinter for the theme of our software.
 ctk.set_default_color_theme("blue")
