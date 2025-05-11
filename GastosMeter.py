@@ -27,6 +27,27 @@ captcha_code = ""
 captcha_image_ref = None
 
 
+
+
+
+# Function to toggle password visibility
+def toggle_password():
+    global password_visible
+    if password_visible:
+        password_entry.configure(show="•")  # Hide password
+        password_icon_button.configure(image=eye_slash_icon_tk)  # Change icon to eye-slash
+    else:
+        password_entry.configure(show="")  # Show password
+        password_icon_button.configure(image=eye_icon_tk)  # Change icon to eye
+
+    password_visible = not password_visible
+
+
+
+
+
+
+
 def center_window(window, width, height):
     # Get the screen dimensions
     screen_width = window.winfo_screenwidth()
@@ -260,10 +281,14 @@ def login():
 
 
 
+# Function to show the login page
 def show_login_page():
-    # Shows login window
+    global username_entry, password_entry, password_icon_button
+
+    # Clear the current window before the new window
     for widget in root.winfo_children():
-        widget.destroy()  # Clear the current window before the new window
+        widget.destroy()
+
     root.title("Gastos Meter - Login")
     root.configure(bg="#FF7AA2")
 
@@ -276,19 +301,25 @@ def show_login_page():
     title_meter = ctk.CTkLabel(root, text="Meter", fg_color="transparent", text_color="#dd868c", font=("Arial", 35))
     title_meter.place(relx=0.5, rely=0.22, anchor="center")
 
-    global username_entry, password_entry
+    # Username entry field
     username_entry = ctk.CTkEntry(label_frame, placeholder_text="Username")
     username_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=10)
 
+    # Password entry field
     password_entry = ctk.CTkEntry(label_frame, placeholder_text="Password", show="•")
     password_entry.grid(row=2, column=0, columnspan=2, padx=5, pady=10)
 
+    # Add the show/hide password button (eye icon) with proper alignment inside the password field
+    password_icon_button = ctk.CTkButton(label_frame, image=eye_slash_icon_tk, fg_color="transparent",command=toggle_password, width=30, height=30, hover_color="#e0e0e0")
+    password_icon_button.place(relx=1.1, rely=0.3, anchor="center")  # Align the icon inside the entry field
+
+    # Login button
     login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=login)
-    login_button.grid(row=3, column=0, columnspan=2, pady=20)
+    login_button.grid(row=3, column=0, columnspan=1, pady=10)
 
     # Add a Sign Up button
     sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
-    sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)  # Place below the login button
+    sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)
 
     forgot_password_button = ctk.CTkButton(label_frame, text="Forgot Password?", fg_color="transparent", text_color="black", font=("Arial", 12, "italic"), command=show_forgot_password_page)
     forgot_password_button.grid(row=5, column=0, columnspan=2, pady=10)
@@ -335,6 +366,21 @@ root.geometry("600x625")
 center_window(root, 600, 625)
 root.configure(bg="#e1b5b5")
 root.resizable(False, False)
+
+eye_icon = Image.open("assets/eye.png")
+eye_slash_icon = Image.open("assets/eye-slash.png")
+
+# Resize images to fit the button
+eye_icon = eye_icon.resize((20, 20))
+eye_slash_icon = eye_slash_icon.resize((20, 20))
+
+# Convert images to a format Tkinter can use
+eye_icon_tk = ImageTk.PhotoImage(eye_icon)
+eye_slash_icon_tk = ImageTk.PhotoImage(eye_slash_icon)
+
+# Flag to track the current state of the password visibility
+password_visible = False
+
 show_login_page()
 
 root.mainloop()
