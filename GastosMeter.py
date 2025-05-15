@@ -1,10 +1,23 @@
 import customtkinter as ctk
-from tkinter import messagebox, Toplevel
-from PIL import Image, ImageTk, ImageDraw, ImageFont, ImageFilter
-import random #for captcha
-import string #for captcha
-import os
+from tkinter import messagebox
+from PIL import Image, ImageTk
 import psycopg2
+
+# Initialize global variables
+
+email_entry = None
+password_entry = None
+password_icon_button = None
+signup_password_entry = None
+signup_confirm_password_entry = None
+signup_password_icon_button = None
+signup_confirm_password_icon_button = None
+
+# Flag to track the current state of the password visibility
+password_visible = False
+signup_password_visible = False
+signup_confirm_password_visible = False
+
 
 # Function to connect to the PostgreSQL database
 def connect_to_db():
@@ -23,14 +36,7 @@ def connect_to_db():
         return None
 
 
-captcha_code = ""
-captcha_image_ref = None
-
-
-
-
-
-# Function to toggle password visibility
+# Function to toggle password
 def toggle_password():
     global password_visible
     if password_visible:
@@ -41,11 +47,6 @@ def toggle_password():
         password_icon_button.configure(image=eye_icon_tk)  # Change icon to eye
 
     password_visible = not password_visible
-
-
-
-
-
 
 
 def center_window(window, width, height):
@@ -61,129 +62,15 @@ def center_window(window, width, height):
     window.geometry(f'{width}x{height}+{x}+{y}')
 
 
-
-
-#generate captcha(6 random letters and numbers, different sizes)
-def generate_captcha():
-    global captcha_code
-
-    #makes 6 random letters and numbers
-    captcha_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    width, height = 220, 100
-
-    image = Image.new('RGB', (width, height), (255, 255, 255))
-    draw = ImageDraw.Draw(image)
-    font_path = "arial.ttf"
-
-    if not os.path.exists(font_path):
-        font_path = None
-
-
-    x_position = 10 #text placement
-
-    for char in captcha_code:
-        font_size = random.randint(30, 45)#radim size
-        font = ImageFont.truetype(font_path, font_size) if font_path else ImageFont.load_default()
-        y_position = random.randint(10, 40)
-
-        #shadow fx for contrast
-        draw.text((x_position + 2, y_position + 2), char, font=font, fill=(180, 180, 180))
-        draw.text((x_position, y_position), char, font=font, fill=(0, 0, 0))
-        x_position += font_size - random.randint(5, 10)
-
-    image = image.filter(ImageFilter.GaussianBlur(radius=1)) #blur effect
-    captcha_photo = ImageTk.PhotoImage(image) #tkinter to compatible img
-    return captcha_photo
-
-def validate_captcha(captcha_entry, captcha_label, captcha_window):
-    #validates the entered captcha
-    user_input = captcha_entry.get().strip()
-
-    #if correct: closes window and open main page
-    if user_input.upper() == captcha_code:
-        captcha_window.destroy()
-        show_main_page()
-    #if wrong regen another captcha
-    else:
-        messagebox.showerror("Error", "Incorrect CAPTCHA. Try again.")
-        update_captcha(captcha_label)
-
-def update_captcha(captcha_label):
-    #captcha update
-    global captcha_image_ref
-    captcha_image_ref = generate_captcha()
-
-    captcha_label.configure(image=captcha_image_ref)
-    captcha_label.image = captcha_image_ref #prevent garbage collection(freeing up memory that is no longer in use)
-
-def open_captcha_window():
-    #shows captcha window
-    captcha_window = Toplevel(root)
-    captcha_window.title("Gastos Meter - CAPTCHA Verification")
-    captcha_window.geometry("350x380")
-    captcha_window.update_idletasks()
-    center_window(captcha_window, 350, 380)
-    captcha_window.configure(bg="white")
-
-    global captcha_image_ref
-    captcha_image_ref = generate_captcha()
-
-    captcha_label = ctk.CTkLabel(captcha_window, image=captcha_image_ref, text="")
-    captcha_label.pack(pady=10)
-
-    captcha_entry = ctk.CTkEntry(captcha_window, placeholder_text="Enter CAPTCHA")
-    captcha_entry.pack(pady=10)
-
-    verify_button = ctk.CTkButton(captcha_window, text="Verify", command=lambda: validate_captcha(captcha_entry, captcha_label, captcha_window))
-    verify_button.pack(pady=10)
-    captcha_window.resizable(False, False)
-
-def show_main_page():
-    #shows main page after captcha verif (authentic)
-    for widget in root.winfo_children():
-        widget.destroy() # clear the current window before the new window
-        root.title("Gastos Meter")
-
-    #layout po ng main page
-    header = ctk.CTkFrame(root, fg_color="black", height=80)
-    header.pack(fill=ctk.X)
-
-    logo = ctk.CTkLabel(header, text="GASTOS METER", fg_color="transparent", text_color="#d0637c", font=("Arial", 35, "bold"))
-    logo.pack(side=ctk.LEFT, padx=20, pady=20)
-
-    logout_button = ctk.CTkButton(header, text="Logout", font=("Arial", 14), fg_color="white", text_color="black", hover_color="#d0637c", command=show_login_page)
-    logout_button.pack(side=ctk.RIGHT, padx=20, pady=15)
-
-    content = ctk.CTkFrame(root, fg_color="#e1b5b5")
-    content.pack(pady=20, padx=40, fill=ctk.BOTH, expand=True)
-
-    heading = ctk.CTkLabel(content, text="Smart Tracking\nfor Smarter Spending", font=("Arial", 32, "bold"), text_color="black")
-    heading.pack(pady=10)
-
-    subtext = ctk.CTkLabel(content, text="Easily track your income, expenses, and savings in one place.\nGain insights, set goals, and take control of your financial future.", font=("Arial", 14), text_color="black")
-    subtext.pack(pady=10)
-
-    start_button = ctk.CTkButton(content, text="Get Started", font=("Arial", 16, "bold"), fg_color="black", hover_color="#d0637c", text_color="white")
-    start_button.pack(anchor="center", pady=20)
-
-    #inserts the image(hand with phone)
-    image = Image.open("element.png")
-    image = image.resize((300, 300))
-    photo = ImageTk.PhotoImage(image)
-
-    label = ctk.CTkLabel(content, image=photo)
-    label.image = photo
-    label.pack()
-
-def register_user(name, email, username, password):
+def register_user(name, email,password):
     conn = connect_to_db()  # Make sure the connection is established
     if conn:
         try:
             cur = conn.cursor()
             cur.execute("""
-                INSERT INTO users (name, email, username, password)
-                VALUES (%s, %s, %s, %s)
-            """, (name, email, username, password))
+                INSERT INTO users (name, email, password)
+                VALUES (%s, %s, %s)
+            """, (name, email, password))
             conn.commit()
             cur.close()
             messagebox.showinfo("Success", "Registration successful!")
@@ -193,8 +80,34 @@ def register_user(name, email, username, password):
             conn.close()
 
 
+def toggle_signup_password(field_type):
+    global signup_password_visible, signup_confirm_password_visible
+    global signup_password_entry, signup_confirm_password_entry
+    global signup_password_icon_button, signup_confirm_password_icon_button
+
+    if field_type == "password":
+        if signup_password_visible:
+            signup_password_entry.configure(show="•")
+            signup_password_icon_button.configure(image=eye_slash_icon_tk)
+        else:
+            signup_password_entry.configure(show="")
+            signup_password_icon_button.configure(image=eye_icon_tk)
+        signup_password_visible = not signup_password_visible
+    else:  # confirm password
+        if signup_confirm_password_visible:
+            signup_confirm_password_entry.configure(show="•")
+            signup_confirm_password_icon_button.configure(image=eye_slash_icon_tk)
+        else:
+            signup_confirm_password_entry.configure(show="")
+            signup_confirm_password_icon_button.configure(image=eye_icon_tk)
+        signup_confirm_password_visible = not signup_confirm_password_visible
+
 
 def show_sign_up_page():
+    global signup_password_entry, signup_confirm_password_entry
+    global signup_password_icon_button, signup_confirm_password_icon_button
+    global email_entry
+
     # clear existing widgets
     for widget in root.winfo_children():
         widget.destroy()
@@ -208,54 +121,68 @@ def show_sign_up_page():
 
     # Email entry field
     email_entry = ctk.CTkEntry(root, placeholder_text="Email")
-    email_entry.place(relx=0.5, rely=0.4, anchor="center")
+    email_entry.place(relx=0.5, rely=0.37, anchor="center")
 
-    # Username entry field
-    username_entry = ctk.CTkEntry(root, placeholder_text="Username")
-    username_entry.place(relx=0.5, rely=0.5, anchor="center")
+    # Password entry field with eye icon
+    signup_password_entry = ctk.CTkEntry(root, placeholder_text="Password", show="•")
+    signup_password_entry.place(relx=0.5, rely=0.51, anchor="center")
 
-    # Password entry field
-    password_entry = ctk.CTkEntry(root, placeholder_text="Password", show="•")
-    password_entry.place(relx=0.5, rely=0.6, anchor="center")
+    signup_password_icon_button = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        command=lambda: toggle_signup_password("password"),
+        width=30,
+        height=30,
+        hover_color="#e0e0e0"
+    )
+    signup_password_icon_button.place(relx=0.65, rely=0.51, anchor="center")
+
+    # Confirm Password entry field with eye icon
+    signup_confirm_password_entry = ctk.CTkEntry(root, placeholder_text="Confirm Password", show="•")
+    signup_confirm_password_entry.place(relx=0.5, rely=0.58, anchor="center")
+
+    signup_confirm_password_icon_button = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        command=lambda: toggle_signup_password("confirm"),
+        width=30,
+        height=30,
+        hover_color="#e0e0e0"
+    )
+    signup_confirm_password_icon_button.place(relx=0.65, rely=0.58, anchor="center")
 
     # Error label
-    error_label = ctk.CTkLabel(root, text="", text_color="red", font=("Arial", 12))
-    error_label.place(relx=0.5, rely=0.7, anchor="center")
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.66, anchor="center")
 
-    # Register button
-    def register_button_click():
-        name = name_entry.get().strip()
-        email = email_entry.get().strip()
-        username = username_entry.get().strip()
-        password = password_entry.get().strip()
+    # Function for when the user clicks sign up
+    def on_sign_up():
+        name = name_entry.get()
+        email = email_entry.get()
+        password = signup_password_entry.get()
+        confirm_password = signup_confirm_password_entry.get()
 
-        # Validate that none of the fields are empty
-        if not name or not email or not username or not password:
-            error_label.configure(text="Please fill in all fields.")
+        if password != confirm_password:
+            error_label.configure(text="Passwords do not match!")
+        elif not all([name, email, password, confirm_password]):
+            error_label.configure(text="Please fill out all fields.")
         else:
-            error_label.configure(text="")  # Clear error message
-            # Proceed with registration and show CAPTCHA window
-            register_and_verify_captcha(name, email, username, password)
+            error_label.configure(text="")  # clear error
+            register_user(name, email, password)
+            show_login_page()  # Redirect to login page after registration
 
-    register_button = ctk.CTkButton(root, text='Register', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=register_button_click)
-    register_button.place(relx=0.5, rely=0.8, anchor="center")
-
-
-
-
-def register_and_verify_captcha(name, email, username, password):
-    # Register the user first
-    register_user(name, email, username, password)
-
-    # After successful registration, show CAPTCHA window
-    open_captcha_window()
+    # Sign Up button
+    sign_up_button = ctk.CTkButton(root, text="Sign Up", command=on_sign_up)
+    sign_up_button.place(relx=0.5, rely=0.73, anchor="center")
 
 
 def login():
-    username = username_entry.get()
+    email = email_entry.get()
     password = password_entry.get()
 
-    if not username or not password:
+    if not email or not password:
         messagebox.showerror("Error", "Please enter both username and password.")
         return
 
@@ -267,7 +194,8 @@ def login():
 
     # Query the database for user credentials (username and password)
     cur = conn.cursor()
-    cur.execute("SELECT username, password, name FROM users WHERE username = %s AND password = %s", (username, password))
+    cur.execute("SELECT email, password, name FROM users WHERE email = %s AND password = %s",
+                (email, password))
     user = cur.fetchone()
     cur.close()
     conn.close()
@@ -275,15 +203,14 @@ def login():
     if user:
         name = user[2]  # `name` is the 3rd column in the result (index 2)
         messagebox.showinfo("Success", f"Login successful! Welcome, {name}!")
-        open_captcha_window()  # Open captcha window after successful login
+
     else:
         messagebox.showerror("Error", "Invalid username or password. Please try again.")
 
 
-
 # Function to show the login page
 def show_login_page():
-    global username_entry, password_entry, password_icon_button
+    global email_entry, password_entry, password_icon_button
 
     # Clear the current window before the new window
     for widget in root.winfo_children():
@@ -302,36 +229,42 @@ def show_login_page():
     title_meter.place(relx=0.5, rely=0.22, anchor="center")
 
     # Username entry field
-    username_entry = ctk.CTkEntry(label_frame, placeholder_text="Username")
-    username_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=10)
+    email_entry = ctk.CTkEntry(label_frame, placeholder_text="Email")
+    email_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=10)
 
     # Password entry field
     password_entry = ctk.CTkEntry(label_frame, placeholder_text="Password", show="•")
     password_entry.grid(row=2, column=0, columnspan=2, padx=5, pady=10)
 
     # Add the show/hide password button (eye icon) with proper alignment inside the password field
-    password_icon_button = ctk.CTkButton(label_frame, image=eye_slash_icon_tk, fg_color="transparent",command=toggle_password, width=30, height=30, hover_color="#e0e0e0")
+    password_icon_button = ctk.CTkButton(label_frame, image=eye_slash_icon_tk, fg_color="transparent",
+                                         command=toggle_password, width=30, height=30, hover_color="#e0e0e0")
     password_icon_button.place(relx=1.1, rely=0.3, anchor="center")  # Align the icon inside the entry field
 
     # Login button
-    login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=login)
+    login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black",
+                                 font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=login)
     login_button.grid(row=3, column=0, columnspan=1, pady=10)
 
     # Add a Sign Up button
-    sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
+    sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black",
+                                   font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
     sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)
 
-    forgot_password_button = ctk.CTkButton(label_frame, text="Forgot Password?", fg_color="transparent", text_color="black", font=("Arial", 12, "italic"), command=show_forgot_password_page)
+    forgot_password_button = ctk.CTkButton(label_frame, text="Forgot Password?", fg_color="transparent",
+                                           text_color="black", font=("Arial", 12, "italic"),
+                                           command=show_forgot_password_page)
     forgot_password_button.grid(row=5, column=0, columnspan=2, pady=10)
-
 
 
 def show_forgot_password_page():
     # Clear the current window
+    global email_entry
     for widget in root.winfo_children():
         widget.destroy()
 
-    title = ctk.CTkLabel(root, text="Forgot Password", fg_color="transparent", text_color="#d0637c", font=("Arial", 40, "bold"))
+    title = ctk.CTkLabel(root, text="Forgot Password", fg_color="transparent", text_color="#d0637c",
+                         font=("Arial", 40, "bold"))
     title.place(relx=0.5, rely=0.15, anchor="center")
 
     # Email or Username entry field
@@ -339,12 +272,16 @@ def show_forgot_password_page():
     email_entry.place(relx=0.5, rely=0.3, anchor="center")
 
     # Submit button for reset
-    submit_button = ctk.CTkButton(root, text="Submit", fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=lambda: reset_password(email_entry.get()))
+    submit_button = ctk.CTkButton(root, text="Submit", fg_color="#E899A2", text_color="black",
+                                  font=("Arial", 12, "bold"), hover_color="#E6B2BA",
+                                  command=lambda: reset_password(email_entry.get()))
     submit_button.place(relx=0.5, rely=0.4, anchor="center")
 
     # Back to login button
-    back_button = ctk.CTkButton(root, text="Back to Login", fg_color="#E899A2", text_color="black", font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_login_page)
+    back_button = ctk.CTkButton(root, text="Back to Login", fg_color="#E899A2", text_color="black",
+                                font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_login_page)
     back_button.place(relx=0.5, rely=0.5, anchor="center")
+
 
 def reset_password(email_or_username):
     if not email_or_username:
@@ -357,8 +294,7 @@ def reset_password(email_or_username):
     show_login_page()  # After reset, go back to the login page
 
 
-
-ctk.set_appearance_mode("light") #we used customtkinter for the theme of our software.
+ctk.set_appearance_mode("light")  # we used customtkinter for the theme of our software.
 ctk.set_default_color_theme("blue")
 
 root = ctk.CTk()
@@ -378,12 +314,9 @@ eye_slash_icon = eye_slash_icon.resize((20, 20))
 eye_icon_tk = ImageTk.PhotoImage(eye_icon)
 eye_slash_icon_tk = ImageTk.PhotoImage(eye_slash_icon)
 
-# Flag to track the current state of the password visibility
-password_visible = False
-
 show_login_page()
 
 root.mainloop()
-#still fixing captcha window(should be centered)
-#signup capthca prblem
-#add sjow/hide pass
+# still fixing captcha window(should be centered)
+# signup capthca prblem
+# add sjow/hide pass
