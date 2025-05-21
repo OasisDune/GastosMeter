@@ -2,6 +2,10 @@ import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import psycopg2
+import random
+import smtplib
+from email.message import EmailMessage
+
 
 # Initialize global variables
 
@@ -36,19 +40,88 @@ def connect_to_db():
         return None
 
 
+
+
+
+
+def send_otp_email(to_email):
+    """Generate a 6-digit OTP and send it to the specified email address."""
+    otp = ''.join(str(random.randint(0, 9)) for _ in range(6))
+    from_mail = 'gabooo0319@gmail.com'
+    app_password = 'sbhu wfke ymea gmzy'  # Use your app password
+
+    msg = EmailMessage()
+    msg['Subject'] = "OTP Verification"
+    msg['From'] = from_mail
+    msg['To'] = to_email
+    msg.set_content(f"Your OTP is: {otp}")
+
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(from_mail, app_password)
+        server.send_message(msg)
+        server.quit()
+        print("Email sent successfully")
+        return otp
+    except Exception as e:
+        print("Failed to send OTP:", e)
+        return None
+
+
+
+
+
+
+def show_otp_verification_page(user_email, user_name):
+    for widget in root.winfo_children():
+        widget.destroy()
+    otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
+    otp_label.place(relx=0.5, rely=0.2, anchor="center")
+    otp_entry = ctk.CTkEntry(root, placeholder_text="OTP")
+    otp_entry.place(relx=0.5, rely=0.3, anchor="center")
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.4, anchor="center")
+    def verify_otp():
+        entered_otp = otp_entry.get()
+        if entered_otp == root.generated_otp:
+            messagebox.showinfo("Success", f"Login successful! Welcome, {user_name}!")
+            # Proceed to main app page here
+        else:
+            error_label.configure(text="Invalid OTP. Please try again.")
+    verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
+    verify_button.place(relx=0.5, rely=0.5, anchor="center")
+
+
+
+
+
+
+def show_otp_verification_page_signup(user_email, user_name, user_password):
+    for widget in root.winfo_children():
+        widget.destroy()
+    otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
+    otp_label.place(relx=0.5, rely=0.2, anchor="center")
+    otp_entry = ctk.CTkEntry(root, placeholder_text="OTP")
+    otp_entry.place(relx=0.5, rely=0.3, anchor="center")
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.4, anchor="center")
+    def verify_otp():
+        entered_otp = otp_entry.get()
+        if entered_otp == root.generated_otp:
+            register_user(user_name, user_email, user_password)
+            show_login_page()
+        else:
+            error_label.configure(text="Invalid OTP. Please try again.")
+    verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
+    verify_button.place(relx=0.5, rely=0.5, anchor="center")
+
+
+
+
+
+
 # Function to toggle password
-def toggle_password():
-    global password_visible
-    if password_visible:
-        password_entry.configure(show="•")  # Hide password
-        password_icon_button.configure(image=eye_slash_icon_tk)  # Change icon to eye-slash
-    else:
-        password_entry.configure(show="")  # Show password
-        password_icon_button.configure(image=eye_icon_tk)  # Change icon to eye
-
-    password_visible = not password_visible
-
-
 def center_window(window, width, height):
     # Get the screen dimensions
     screen_width = window.winfo_screenwidth()
@@ -60,6 +133,12 @@ def center_window(window, width, height):
 
     # Set the window geometry
     window.geometry(f'{width}x{height}+{x}+{y}')
+
+
+
+
+
+
 
 
 def register_user(name, email,password):
@@ -80,27 +159,9 @@ def register_user(name, email,password):
             conn.close()
 
 
-def toggle_signup_password(field_type):
-    global signup_password_visible, signup_confirm_password_visible
-    global signup_password_entry, signup_confirm_password_entry
-    global signup_password_icon_button, signup_confirm_password_icon_button
 
-    if field_type == "password":
-        if signup_password_visible:
-            signup_password_entry.configure(show="•")
-            signup_password_icon_button.configure(image=eye_slash_icon_tk)
-        else:
-            signup_password_entry.configure(show="")
-            signup_password_icon_button.configure(image=eye_icon_tk)
-        signup_password_visible = not signup_password_visible
-    else:  # confirm password
-        if signup_confirm_password_visible:
-            signup_confirm_password_entry.configure(show="•")
-            signup_confirm_password_icon_button.configure(image=eye_slash_icon_tk)
-        else:
-            signup_confirm_password_entry.configure(show="")
-            signup_confirm_password_icon_button.configure(image=eye_icon_tk)
-        signup_confirm_password_visible = not signup_confirm_password_visible
+
+
 
 
 def show_sign_up_page():
@@ -108,56 +169,27 @@ def show_sign_up_page():
     global signup_password_icon_button, signup_confirm_password_icon_button
     global email_entry
 
-    # clear existing widgets
     for widget in root.winfo_children():
         widget.destroy()
 
     title = ctk.CTkLabel(root, text="Sign Up", fg_color="transparent", text_color="#d0637c", font=("Arial", 40, "bold"))
     title.place(relx=0.5, rely=0.15, anchor="center")
 
-    # Name entry field
     name_entry = ctk.CTkEntry(root, placeholder_text="Full Name")
     name_entry.place(relx=0.5, rely=0.3, anchor="center")
 
-    # Email entry field
     email_entry = ctk.CTkEntry(root, placeholder_text="Email")
     email_entry.place(relx=0.5, rely=0.37, anchor="center")
 
-    # Password entry field with eye icon
     signup_password_entry = ctk.CTkEntry(root, placeholder_text="Password", show="•")
     signup_password_entry.place(relx=0.5, rely=0.51, anchor="center")
 
-    signup_password_icon_button = ctk.CTkButton(
-        root,
-        image=eye_slash_icon_tk,
-        fg_color="transparent",
-        command=lambda: toggle_signup_password("password"),
-        width=30,
-        height=30,
-        hover_color="#e0e0e0"
-    )
-    signup_password_icon_button.place(relx=0.65, rely=0.51, anchor="center")
-
-    # Confirm Password entry field with eye icon
     signup_confirm_password_entry = ctk.CTkEntry(root, placeholder_text="Confirm Password", show="•")
     signup_confirm_password_entry.place(relx=0.5, rely=0.58, anchor="center")
 
-    signup_confirm_password_icon_button = ctk.CTkButton(
-        root,
-        image=eye_slash_icon_tk,
-        fg_color="transparent",
-        command=lambda: toggle_signup_password("confirm"),
-        width=30,
-        height=30,
-        hover_color="#e0e0e0"
-    )
-    signup_confirm_password_icon_button.place(relx=0.65, rely=0.58, anchor="center")
-
-    # Error label
     error_label = ctk.CTkLabel(root, text="", text_color="red")
     error_label.place(relx=0.5, rely=0.66, anchor="center")
 
-    # Function for when the user clicks sign up
     def on_sign_up():
         name = name_entry.get()
         email = email_entry.get()
@@ -169,50 +201,69 @@ def show_sign_up_page():
         elif not all([name, email, password, confirm_password]):
             error_label.configure(text="Please fill out all fields.")
         else:
-            error_label.configure(text="")  # clear error
-            register_user(name, email, password)
-            show_login_page()  # Redirect to login page after registration
+            error_label.configure(text="")
+            otp = send_otp_email(email)
+            if otp:
+                root.generated_otp = otp
+                show_otp_verification_page_signup(email, name, password)
+            else:
+                error_label.configure(text="Failed to send OTP. Check your email address.")
 
-    # Sign Up button
-    sign_up_button = ctk.CTkButton(root, text="Sign Up", command=on_sign_up)
+    sign_up_button = ctk.CTkButton(
+        root,
+        text="Sign Up",
+        fg_color="#E899A2",
+        text_color="black",
+        font=("Arial", 12, "bold"),
+        hover_color="#E6B2BA",
+        command=on_sign_up
+    )
     sign_up_button.place(relx=0.5, rely=0.73, anchor="center")
+
+    back_to_login = ctk.CTkButton(root, text="Back to Login", fg_color="transparent", text_color="#333",
+                                   command=show_login_page)
+    back_to_login.place(relx=0.5, rely=0.80, anchor="center")
+
+
+
+
+
+
 
 
 def login():
     email = email_entry.get()
     password = password_entry.get()
-
     if not email or not password:
         messagebox.showerror("Error", "Please enter both username and password.")
         return
-
-    # Connect to the database
     conn = connect_to_db()
     if not conn:
         messagebox.showerror("Error", "Failed to connect to the database.")
         return
-
-    # Query the database for user credentials (username and password)
     cur = conn.cursor()
-    cur.execute("SELECT email, password, name FROM users WHERE email = %s AND password = %s",
-                (email, password))
+    cur.execute("SELECT email, password, name FROM users WHERE email = %s AND password = %s", (email, password))
     user = cur.fetchone()
     cur.close()
     conn.close()
-
     if user:
-        name = user[2]  # `name` is the 3rd column in the result (index 2)
-        messagebox.showinfo("Success", f"Login successful! Welcome, {name}!")
-
+        name = user[2]
+        otp = send_otp_email(email)
+        if otp:
+            root.generated_otp = otp
+            show_otp_verification_page(email, name)
+        else:
+            messagebox.showerror("Error", "Failed to send OTP. Please try again.")
     else:
         messagebox.showerror("Error", "Invalid username or password. Please try again.")
 
 
-# Function to show the login page
+
+
+
 def show_login_page():
     global email_entry, password_entry, password_icon_button
 
-    # Clear the current window before the new window
     for widget in root.winfo_children():
         widget.destroy()
 
@@ -228,25 +279,40 @@ def show_login_page():
     title_meter = ctk.CTkLabel(root, text="Meter", fg_color="transparent", text_color="#dd868c", font=("Arial", 35))
     title_meter.place(relx=0.5, rely=0.22, anchor="center")
 
-    # Username entry field
     email_entry = ctk.CTkEntry(label_frame, placeholder_text="Email")
     email_entry.grid(row=1, column=0, columnspan=2, padx=5, pady=10)
 
-    # Password entry field
+    password_visible_flag = [False]  # Mutable flag
+
     password_entry = ctk.CTkEntry(label_frame, placeholder_text="Password", show="•")
-    password_entry.grid(row=2, column=0, columnspan=2, padx=5, pady=10)
+    password_entry.grid(row=2, column=0, padx=5, pady=10)
 
-    # Add the show/hide password button (eye icon) with proper alignment inside the password field
-    password_icon_button = ctk.CTkButton(label_frame, image=eye_slash_icon_tk, fg_color="transparent",
-                                         command=toggle_password, width=30, height=30, hover_color="#e0e0e0")
-    password_icon_button.place(relx=1.1, rely=0.3, anchor="center")  # Align the icon inside the entry field
+    def toggle_password_visibility():
+        if password_visible_flag[0]:
+            password_entry.configure(show="•")
+            password_icon_button.configure(image=eye_slash_icon_tk)
+            password_visible_flag[0] = False
+        else:
+            password_entry.configure(show="")
+            password_icon_button.configure(image=eye_icon_tk)
+            password_visible_flag[0] = True
 
-    # Login button
+    password_icon_button = ctk.CTkButton(
+        label_frame,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        width=30,
+        height=30,
+        command=toggle_password_visibility,
+        hover_color="#e0e0e0",
+        text=""
+    )
+    password_icon_button.grid(row=2, column=2, padx=2, pady=10)
+
     login_button = ctk.CTkButton(label_frame, text='Log In', fg_color="#E899A2", text_color="black",
                                  font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=login)
     login_button.grid(row=3, column=0, columnspan=1, pady=10)
 
-    # Add a Sign Up button
     sign_up_button = ctk.CTkButton(label_frame, text='Sign Up', fg_color="#E899A2", text_color="black",
                                    font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
     sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)
@@ -257,8 +323,12 @@ def show_login_page():
     forgot_password_button.grid(row=5, column=0, columnspan=2, pady=10)
 
 
+
+
+
+
+
 def show_forgot_password_page():
-    # Clear the current window
     global email_entry
     for widget in root.winfo_children():
         widget.destroy()
@@ -267,20 +337,179 @@ def show_forgot_password_page():
                          font=("Arial", 40, "bold"))
     title.place(relx=0.5, rely=0.15, anchor="center")
 
-    # Email or Username entry field
-    email_entry = ctk.CTkEntry(root, placeholder_text="Enter your email/username")
+    email_entry = ctk.CTkEntry(root, placeholder_text="Enter your email")
     email_entry.place(relx=0.5, rely=0.3, anchor="center")
 
-    # Submit button for reset
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.37, anchor="center")
+
+    def on_submit():
+        email = email_entry.get().strip()
+        if not email:
+            error_label.configure(text="Please enter your email.")
+            return
+        otp = send_otp_email(email)
+        if otp:
+            root.generated_otp = otp
+            show_otp_verification_page_forgot(email)
+        else:
+            error_label.configure(text="Failed to send OTP. Check your email address.")
+
     submit_button = ctk.CTkButton(root, text="Submit", fg_color="#E899A2", text_color="black",
                                   font=("Arial", 12, "bold"), hover_color="#E6B2BA",
-                                  command=lambda: reset_password(email_entry.get()))
-    submit_button.place(relx=0.5, rely=0.4, anchor="center")
+                                  command=on_submit)
+    submit_button.place(relx=0.5, rely=0.45, anchor="center")
 
-    # Back to login button
     back_button = ctk.CTkButton(root, text="Back to Login", fg_color="#E899A2", text_color="black",
                                 font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_login_page)
-    back_button.place(relx=0.5, rely=0.5, anchor="center")
+    back_button.place(relx=0.5, rely=0.55, anchor="center")
+
+
+
+
+
+def show_otp_verification_page_forgot(user_email):
+    for widget in root.winfo_children():
+        widget.destroy()
+    otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
+    otp_label.place(relx=0.5, rely=0.2, anchor="center")
+    otp_entry = ctk.CTkEntry(root, placeholder_text="OTP")
+    otp_entry.place(relx=0.5, rely=0.3, anchor="center")
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.4, anchor="center")
+    def verify_otp():
+        entered_otp = otp_entry.get()
+        if entered_otp == root.generated_otp:
+            show_reset_password_page(user_email)
+        else:
+            error_label.configure(text="Invalid OTP. Please try again.")
+    verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
+    verify_button.place(relx=0.5, rely=0.5, anchor="center")
+
+
+
+
+
+
+
+def show_reset_password_page(user_email):
+    global reset_password_visible, reset_confirm_password_visible
+    reset_password_visible = False
+    reset_confirm_password_visible = False
+
+    for widget in root.winfo_children():
+        widget.destroy()
+    title = ctk.CTkLabel(root, text="Reset Password", fg_color="transparent", text_color="#d0637c",
+                         font=("Arial", 30, "bold"))
+    title.place(relx=0.5, rely=0.15, anchor="center")
+
+    # New Password Entry
+    new_password_entry = ctk.CTkEntry(root, placeholder_text="New Password", show="•")
+    new_password_entry.place(relx=0.5, rely=0.3, anchor="center")
+
+    # Confirm Password Entry
+    confirm_password_entry = ctk.CTkEntry(root, placeholder_text="Confirm Password", show="•")
+    confirm_password_entry.place(relx=0.5, rely=0.37, anchor="center")
+
+    # Error Label
+    error_label = ctk.CTkLabel(root, text="", text_color="red")
+    error_label.place(relx=0.5, rely=0.25, anchor="center")
+
+    # Show/Hide password logic
+    password_visible_flag = [False]
+    confirm_password_visible_flag = [False]
+
+    def toggle_new_password_visibility():
+        if password_visible_flag[0]:
+            new_password_entry.configure(show="•")
+            new_password_icon_btn.configure(image=eye_slash_icon_tk)
+            password_visible_flag[0] = False
+        else:
+            new_password_entry.configure(show="")
+            new_password_icon_btn.configure(image=eye_icon_tk)
+            password_visible_flag[0] = True
+
+    def toggle_confirm_password_visibility():
+        if confirm_password_visible_flag[0]:
+            confirm_password_entry.configure(show="•")
+            confirm_password_icon_btn.configure(image=eye_slash_icon_tk)
+            confirm_password_visible_flag[0] = False
+        else:
+            confirm_password_entry.configure(show="")
+            confirm_password_icon_btn.configure(image=eye_icon_tk)
+            confirm_password_visible_flag[0] = True
+
+    new_password_icon_btn = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        width=30,
+        height=30,
+        command=toggle_new_password_visibility,
+        hover_color="#e0e0e0",
+        text=""
+    )
+    new_password_icon_btn.place(relx=0.68, rely=0.3, anchor="center")
+
+    confirm_password_icon_btn = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        width=30,
+        height=30,
+        command=toggle_confirm_password_visibility,
+        hover_color="#e0e0e0",
+        text=""
+    )
+    confirm_password_icon_btn.place(relx=0.68, rely=0.37, anchor="center")
+
+    def on_reset():
+        new_password = new_password_entry.get()
+        confirm_password = confirm_password_entry.get()
+        if not new_password or not confirm_password:
+            error_label.configure(text="Please fill out all fields.")
+        elif new_password != confirm_password:
+            error_label.configure(text="Passwords do not match.")
+        else:
+            if update_user_password(user_email, new_password):
+                messagebox.showinfo("Success", "Password reset successful!")
+                show_login_page()
+            else:
+                error_label.configure(text="Failed to reset password.")
+
+    reset_button = ctk.CTkButton(root, text="Reset Password", command=on_reset)
+    reset_button.place(relx=0.5, rely=0.52, anchor="center")
+
+    back_button = ctk.CTkButton(root, text="Back to Login", fg_color="#E899A2", text_color="black",
+                                font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_login_page)
+    back_button.place(relx=0.5, rely=0.60, anchor="center")
+
+
+
+
+
+
+
+def update_user_password(email, new_password):
+    conn = connect_to_db()
+    if conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET password = %s WHERE email = %s", (new_password, email))
+            conn.commit()
+            cur.close()
+            return True
+        except Exception as e:
+            print("Error updating password:", e)
+            return False
+        finally:
+            conn.close()
+    return False
+
+
+
+
+
 
 
 def reset_password(email_or_username):
