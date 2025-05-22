@@ -5,7 +5,7 @@ import psycopg2
 import random
 import smtplib
 from email.message import EmailMessage
-
+import bcrypt
 
 # Initialize global variables
 
@@ -97,7 +97,7 @@ def show_otp_verification_page(user_email, user_name):
 
 
 
-def show_otp_verification_page_signup(user_email, user_name, user_password):
+def show_otp_verification_page(user_email, user_name):
     for widget in root.winfo_children():
         widget.destroy()
     otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
@@ -109,8 +109,11 @@ def show_otp_verification_page_signup(user_email, user_name, user_password):
     def verify_otp():
         entered_otp = otp_entry.get()
         if entered_otp == root.generated_otp:
-            register_user(user_name, user_email, user_password)
-            show_login_page()
+            # Show the post-login financial setup window
+            post_signup = PostSignupWindow()
+            post_signup.mainloop()
+            # After setup, proceed to your main app/dashboard here
+            # e.g., show_dashboard_page(user_name)
         else:
             error_label.configure(text="Invalid OTP. Please try again.")
     verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
@@ -141,15 +144,17 @@ def center_window(window, width, height):
 
 
 
-def register_user(name, email,password):
-    conn = connect_to_db()  # Make sure the connection is established
+def register_user(name, email, password):
+    conn = connect_to_db()
     if conn:
         try:
             cur = conn.cursor()
+            # Hash the password before storing
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             cur.execute("""
                 INSERT INTO users (name, email, password)
                 VALUES (%s, %s, %s)
-            """, (name, email, password))
+            """, (name, email, hashed_password.decode('utf-8')))
             conn.commit()
             cur.close()
             messagebox.showinfo("Success", "Registration successful!")
@@ -186,6 +191,54 @@ def show_sign_up_page():
 
     signup_confirm_password_entry = ctk.CTkEntry(root, placeholder_text="Confirm Password", show="•")
     signup_confirm_password_entry.place(relx=0.5, rely=0.58, anchor="center")
+
+    # Flags for password visibility
+    signup_password_visible_flag = [False]
+    signup_confirm_password_visible_flag = [False]
+
+    def toggle_signup_password_visibility():
+        if signup_password_visible_flag[0]:
+            signup_password_entry.configure(show="•")
+            signup_password_icon_button.configure(image=eye_slash_icon_tk)
+            signup_password_visible_flag[0] = False
+        else:
+            signup_password_entry.configure(show="")
+            signup_password_icon_button.configure(image=eye_icon_tk)
+            signup_password_visible_flag[0] = True
+
+    def toggle_signup_confirm_password_visibility():
+        if signup_confirm_password_visible_flag[0]:
+            signup_confirm_password_entry.configure(show="•")
+            signup_confirm_password_icon_button.configure(image=eye_slash_icon_tk)
+            signup_confirm_password_visible_flag[0] = False
+        else:
+            signup_confirm_password_entry.configure(show="")
+            signup_confirm_password_icon_button.configure(image=eye_icon_tk)
+            signup_confirm_password_visible_flag[0] = True
+
+    signup_password_icon_button = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        width=30,
+        height=30,
+        command=toggle_signup_password_visibility,
+        hover_color="#e0e0e0",
+        text=""
+    )
+    signup_password_icon_button.place(relx=0.68, rely=0.51, anchor="center")
+
+    signup_confirm_password_icon_button = ctk.CTkButton(
+        root,
+        image=eye_slash_icon_tk,
+        fg_color="transparent",
+        width=30,
+        height=30,
+        command=toggle_signup_confirm_password_visibility,
+        hover_color="#e0e0e0",
+        text=""
+    )
+    signup_confirm_password_icon_button.place(relx=0.68, rely=0.58, anchor="center")
 
     error_label = ctk.CTkLabel(root, text="", text_color="red")
     error_label.place(relx=0.5, rely=0.66, anchor="center")
@@ -229,6 +282,55 @@ def show_sign_up_page():
 
 
 
+class PostSignupWindow(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        self.title("Financial Setup")
+        self.geometry("600x500")
+        self.configure(bg="#1c2b1b")
+        self.envelopes = []
+        ctk.CTkLabel(self, text="Welcome! Let's set up your finances.",
+                     font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
+        self.balance_entry = ctk.CTkEntry(self, placeholder_text="Enter your current balance")
+        self.balance_entry.pack(pady=10, ipady=5, ipadx=5)
+        ctk.CTkLabel(self, text="Create Envelopes for Essential Expenses",
+                     font=ctk.CTkFont(size=16)).pack(pady=10)
+        input_frame = ctk.CTkFrame(self, fg_color="#2e4730")
+        input_frame.pack(pady=5, padx=10)
+        self.envelope_name = ctk.CTkEntry(input_frame, placeholder_text="Envelope Name (e.g., Water)")
+        self.envelope_name.pack(side="left", padx=10, pady=10)
+        self.envelope_amount = ctk.CTkEntry(input_frame, placeholder_text="Amount")
+        self.envelope_amount.pack(side="left", padx=10, pady=10)
+        add_btn = ctk.CTkButton(input_frame, text="Add", command=self.add_envelope)
+        add_btn.pack(side="left", padx=10, pady=10)
+        self.scroll_frame = ctk.CTkScrollableFrame(self, height=200)
+        self.scroll_frame.pack(padx=20, pady=10, fill="both", expand=True)
+        self.submit_btn = ctk.CTkButton(self, text="Submit", command=self.submit_data)
+        self.submit_btn.pack(pady=20)
+
+    def add_envelope(self):
+        name = self.envelope_name.get()
+        amount = self.envelope_amount.get()
+        if name and amount:
+            label = ctk.CTkLabel(self.scroll_frame, text=f"{name}: ₱{amount}", font=("Arial", 14))
+            label.pack(anchor="w", padx=10, pady=5)
+            self.envelopes.append((name, amount))
+            self.envelope_name.delete(0, 'end')
+            self.envelope_amount.delete(0, 'end')
+
+    def submit_data(self):
+        balance = self.balance_entry.get()
+        print("Balance:", balance)
+        print("Envelopes:")
+        for name, amount in self.envelopes:
+            print(f"{name}: ₱{amount}")
+        # Add DB save logic here if needed
+        self.destroy()
+        show_login_page()
+
+
+
+
 
 
 def login():
@@ -242,11 +344,11 @@ def login():
         messagebox.showerror("Error", "Failed to connect to the database.")
         return
     cur = conn.cursor()
-    cur.execute("SELECT email, password, name FROM users WHERE email = %s AND password = %s", (email, password))
+    cur.execute("SELECT email, password, name FROM users WHERE email = %s", (email,))
     user = cur.fetchone()
     cur.close()
     conn.close()
-    if user:
+    if user and bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
         name = user[2]
         otp = send_otp_email(email)
         if otp:
@@ -495,7 +597,9 @@ def update_user_password(email, new_password):
     if conn:
         try:
             cur = conn.cursor()
-            cur.execute("UPDATE users SET password = %s WHERE email = %s", (new_password, email))
+            # Hash the new password before updating
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            cur.execute("UPDATE users SET password = %s WHERE email = %s", (hashed_password.decode('utf-8'), email))
             conn.commit()
             cur.close()
             return True
