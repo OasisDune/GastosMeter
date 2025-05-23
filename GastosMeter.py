@@ -6,6 +6,7 @@ import random
 import smtplib
 from email.message import EmailMessage
 import bcrypt
+import os
 
 # Initialize global variables
 
@@ -73,7 +74,11 @@ def send_otp_email(to_email):
 
 
 
-def show_otp_verification_page(user_email, user_name):
+
+
+
+
+def show_otp_verification_page(user_email, user_name, remember_var=None):
     for widget in root.winfo_children():
         widget.destroy()
     otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
@@ -82,42 +87,23 @@ def show_otp_verification_page(user_email, user_name):
     otp_entry.place(relx=0.5, rely=0.3, anchor="center")
     error_label = ctk.CTkLabel(root, text="", text_color="red")
     error_label.place(relx=0.5, rely=0.4, anchor="center")
+
     def verify_otp():
         entered_otp = otp_entry.get()
         if entered_otp == root.generated_otp:
-            messagebox.showinfo("Success", f"Login successful! Welcome, {user_name}!")
-            # Proceed to main app page here
-        else:
-            error_label.configure(text="Invalid OTP. Please try again.")
-    verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
-    verify_button.place(relx=0.5, rely=0.5, anchor="center")
+            if remember_var and remember_var.get():
+                remember_device(user_email)
+            # Destroy OTP widgets before opening PostSignupWindow
+            for widget in root.winfo_children():
+                widget.destroy()
 
+            def after_postsignup(name):
+                show_dashboard_page(name)
 
-
-
-
-
-def show_otp_verification_page(user_email, user_name):
-    for widget in root.winfo_children():
-        widget.destroy()
-    otp_label = ctk.CTkLabel(root, text="Enter the OTP sent to your email", text_color="#d0637c", font=("Arial", 20, "bold"))
-    otp_label.place(relx=0.5, rely=0.2, anchor="center")
-    otp_entry = ctk.CTkEntry(root, placeholder_text="OTP")
-    otp_entry.place(relx=0.5, rely=0.3, anchor="center")
-    error_label = ctk.CTkLabel(root, text="", text_color="red")
-    error_label.place(relx=0.5, rely=0.4, anchor="center")
-    def verify_otp():
-        entered_otp = otp_entry.get()
-        if entered_otp == root.generated_otp:
-            # Show the post-login financial setup window
-            post_signup = PostSignupWindow()
+            post_signup = PostSignupWindow(user_name, after_postsignup)
             post_signup.mainloop()
-            # After setup, proceed to your main app/dashboard here
-            # e.g., show_dashboard_page(user_name)
         else:
             error_label.configure(text="Invalid OTP. Please try again.")
-    verify_button = ctk.CTkButton(root, text="Verify OTP", command=verify_otp)
-    verify_button.place(relx=0.5, rely=0.5, anchor="center")
 
 
 
@@ -258,7 +244,7 @@ def show_sign_up_page():
             otp = send_otp_email(email)
             if otp:
                 root.generated_otp = otp
-                show_otp_verification_page_signup(email, name, password)
+                show_otp_verification_page(email, name)
             else:
                 error_label.configure(text="Failed to send OTP. Check your email address.")
 
@@ -281,38 +267,87 @@ def show_sign_up_page():
 
 
 
-
 class PostSignupWindow(ctk.CTk):
-    def __init__(self):
+    def __init__(self, user_name, on_finish):
         super().__init__()
+        self.user_name = user_name
+        self.on_finish = on_finish
         self.title("Financial Setup")
         self.geometry("600x500")
-        self.configure(bg="#1c2b1b")
+        self.configure(bg="#16241d")  # dark green background
         self.envelopes = []
-        ctk.CTkLabel(self, text="Welcome! Let's set up your finances.",
-                     font=ctk.CTkFont(size=20, weight="bold")).pack(pady=20)
-        self.balance_entry = ctk.CTkEntry(self, placeholder_text="Enter your current balance")
+        ctk.CTkLabel(
+            self,
+            text="Welcome! Let's set up your finances.",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="#a8ffb0",  # light green
+            bg_color="#16241d"
+        ).pack(pady=20)
+        self.balance_entry = ctk.CTkEntry(
+            self,
+            placeholder_text="Enter your current balance",
+            fg_color="#1e3a2f",
+            border_color="#2e8b57",
+            text_color="#a8ffb0"
+        )
         self.balance_entry.pack(pady=10, ipady=5, ipadx=5)
-        ctk.CTkLabel(self, text="Create Envelopes for Essential Expenses",
-                     font=ctk.CTkFont(size=16)).pack(pady=10)
-        input_frame = ctk.CTkFrame(self, fg_color="#2e4730")
+        ctk.CTkLabel(
+            self,
+            text="Create Envelopes for Essential Expenses",
+            font=ctk.CTkFont(size=16),
+            text_color="#7ed6a7",
+            bg_color="#16241d"
+        ).pack(pady=10)
+        input_frame = ctk.CTkFrame(self, fg_color="#1e3a2f")
         input_frame.pack(pady=5, padx=10)
-        self.envelope_name = ctk.CTkEntry(input_frame, placeholder_text="Envelope Name (e.g., Water)")
+        self.envelope_name = ctk.CTkEntry(
+            input_frame,
+            placeholder_text="Envelope Name (e.g., Water)",
+            fg_color="#22382a",
+            border_color="#2e8b57",
+            text_color="#a8ffb0"
+        )
         self.envelope_name.pack(side="left", padx=10, pady=10)
-        self.envelope_amount = ctk.CTkEntry(input_frame, placeholder_text="Amount")
+        self.envelope_amount = ctk.CTkEntry(
+            input_frame,
+            placeholder_text="Amount",
+            fg_color="#22382a",
+            border_color="#2e8b57",
+            text_color="#a8ffb0"
+        )
         self.envelope_amount.pack(side="left", padx=10, pady=10)
-        add_btn = ctk.CTkButton(input_frame, text="Add", command=self.add_envelope)
+        add_btn = ctk.CTkButton(
+            input_frame,
+            text="Add",
+            command=self.add_envelope,
+            fg_color="#2e8b57",
+            hover_color="#276f4d",
+            text_color="#fff"
+        )
         add_btn.pack(side="left", padx=10, pady=10)
-        self.scroll_frame = ctk.CTkScrollableFrame(self, height=200)
+        self.scroll_frame = ctk.CTkScrollableFrame(self, height=200, fg_color="#1e3a2f")
         self.scroll_frame.pack(padx=20, pady=10, fill="both", expand=True)
-        self.submit_btn = ctk.CTkButton(self, text="Submit", command=self.submit_data)
+        self.submit_btn = ctk.CTkButton(
+            self,
+            text="Submit",
+            command=self.submit_data,
+            fg_color="#2e8b57",
+            hover_color="#276f4d",
+            text_color="#fff"
+        )
         self.submit_btn.pack(pady=20)
 
     def add_envelope(self):
         name = self.envelope_name.get()
         amount = self.envelope_amount.get()
         if name and amount:
-            label = ctk.CTkLabel(self.scroll_frame, text=f"{name}: ₱{amount}", font=("Arial", 14))
+            label = ctk.CTkLabel(
+                self.scroll_frame,
+                text=f"{name}: ₱{amount}",
+                font=("Arial", 14),
+                text_color="#a8ffb0",
+                bg_color="#1e3a2f"
+            )
             label.pack(anchor="w", padx=10, pady=5)
             self.envelopes.append((name, amount))
             self.envelope_name.delete(0, 'end')
@@ -324,9 +359,9 @@ class PostSignupWindow(ctk.CTk):
         print("Envelopes:")
         for name, amount in self.envelopes:
             print(f"{name}: ₱{amount}")
-        # Add DB save logic here if needed
         self.destroy()
-        show_login_page()
+        if self.on_finish:
+            self.on_finish(self.user_name)
 
 
 
@@ -348,12 +383,22 @@ def login():
     user = cur.fetchone()
     cur.close()
     conn.close()
-    if user and bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
+
+    if user:
         name = user[2]
+    else:
+        name = None
+
+    if is_device_remembered(email) and name:
+        show_dashboard_page(name)
+        return
+
+    if user and bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
         otp = send_otp_email(email)
         if otp:
             root.generated_otp = otp
-            show_otp_verification_page(email, name)
+            # Pass remember_var from the login page
+            show_otp_verification_page(email, name, remember_var)
         else:
             messagebox.showerror("Error", "Failed to send OTP. Please try again.")
     else:
@@ -364,7 +409,7 @@ def login():
 
 
 def show_login_page():
-    global email_entry, password_entry, password_icon_button
+    global email_entry, password_entry, password_icon_button, remember_var
 
     for widget in root.winfo_children():
         widget.destroy()
@@ -419,10 +464,42 @@ def show_login_page():
                                    font=("Arial", 12, "bold"), hover_color="#E6B2BA", command=show_sign_up_page)
     sign_up_button.grid(row=4, column=0, columnspan=2, pady=10)
 
+    # Make remember_var global
+    global remember_var
+    remember_var = ctk.BooleanVar()
+    remember_checkbox = ctk.CTkCheckBox(label_frame, text="Remember this device", variable=remember_var)
+    remember_checkbox.grid(row=6, column=0, columnspan=2, pady=5)
+
     forgot_password_button = ctk.CTkButton(label_frame, text="Forgot Password?", fg_color="transparent",
                                            text_color="black", font=("Arial", 12, "italic"),
                                            command=show_forgot_password_page)
     forgot_password_button.grid(row=5, column=0, columnspan=2, pady=10)
+
+
+
+def show_dashboard_page(user_name):
+    messagebox.showinfo("Welcome", f"Welcome, {user_name}! (Dashboard coming soon)")
+
+
+
+
+REMEMBER_FILE = "remember_device.txt"
+
+def is_device_remembered(email):
+    if os.path.exists(REMEMBER_FILE):
+        with open(REMEMBER_FILE, "r") as f:
+            remembered_email = f.read().strip()
+            return remembered_email == email
+    return False
+
+def remember_device(email):
+    with open(REMEMBER_FILE, "w") as f:
+        f.write(email)
+
+def forget_device():
+    if os.path.exists(REMEMBER_FILE):
+        os.remove(REMEMBER_FILE)
+
 
 
 
