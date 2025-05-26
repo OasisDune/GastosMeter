@@ -7,8 +7,21 @@ import smtplib
 from email.message import EmailMessage
 import bcrypt
 import os
-
+from main_page import Navigation
 # Initialize global variables
+
+
+# At the top of GastosMeter.py
+TEST_MODE = True
+
+def send_otp_email(to_email):
+    if TEST_MODE:
+        otp = '123456'
+        print(f"[TEST MODE] OTP for {to_email}: {otp}")
+        return otp
+    # ... existing real email sending code ...
+
+
 
 email_entry = None
 password_entry = None
@@ -91,19 +104,32 @@ def show_otp_verification_page(user_email, user_name, remember_var=None):
     def verify_otp():
         entered_otp = otp_entry.get()
         if entered_otp == root.generated_otp:
+            if hasattr(root, "signup_name") and hasattr(root, "signup_email") and hasattr(root, "signup_password"):
+                # Register user after OTP is verified (sign up flow)
+                register_user(root.signup_name, root.signup_email, root.signup_password)
+                # Clean up stored signup info
+                del root.signup_name
+                del root.signup_email
+                del root.signup_password
             if remember_var and remember_var.get():
                 remember_device(user_email)
-            # Destroy OTP widgets before opening PostSignupWindow
+            # Destroy OTP widgets before opening dashboard
             for widget in root.winfo_children():
                 widget.destroy()
-
-            def after_postsignup(name):
-                show_dashboard_page(name)
-
-            post_signup = PostSignupWindow(user_name, after_postsignup)
-            post_signup.mainloop()
+            show_dashboard_page(user_name)
         else:
             error_label.configure(text="Invalid OTP. Please try again.")
+
+    submit_btn = ctk.CTkButton(
+        root,
+        text="Submit OTP",
+        fg_color="#E899A2",
+        text_color="black",
+        font=("Arial", 12, "bold"),
+        hover_color="#E6B2BA",
+        command=verify_otp
+    )
+    submit_btn.place(relx=0.5, rely=0.5, anchor="center")
 
 
 
@@ -148,6 +174,7 @@ def register_user(name, email, password):
             messagebox.showerror("Error", f"An error occurred: {e}")
         finally:
             conn.close()
+
 
 
 
@@ -244,11 +271,16 @@ def show_sign_up_page():
             otp = send_otp_email(email)
             if otp:
                 root.generated_otp = otp
+                # Store signup info for OTP verification
+                root.signup_name = name
+                root.signup_email = email
+                root.signup_password = password
                 show_otp_verification_page(email, name)
             else:
                 error_label.configure(text="Failed to send OTP. Check your email address.")
 
-    sign_up_button = ctk.CTkButton(
+    # Sign Up button
+    sign_up_btn = ctk.CTkButton(
         root,
         text="Sign Up",
         fg_color="#E899A2",
@@ -257,85 +289,25 @@ def show_sign_up_page():
         hover_color="#E6B2BA",
         command=on_sign_up
     )
-    sign_up_button.place(relx=0.5, rely=0.73, anchor="center")
+    sign_up_btn.place(relx=0.5, rely=0.75, anchor="center")
 
-    back_to_login = ctk.CTkButton(root, text="Back to Login", fg_color="transparent", text_color="#333",
-                                   command=show_login_page)
-    back_to_login.place(relx=0.5, rely=0.80, anchor="center")
+    # Back to Login button
+    back_btn = ctk.CTkButton(
+        root,
+        text="Back to Login",
+        fg_color="#E899A2",
+        text_color="black",
+        font=("Arial", 12, "bold"),
+        hover_color="#E6B2BA",
+        command=show_login_page
+    )
+    back_btn.place(relx=0.5, rely=0.82, anchor="center")
 
 
 
 
 
-class PostSignupWindow(ctk.CTk):
-    def __init__(self, user_name, on_finish):
-        super().__init__()
-        self.user_name = user_name
-        self.on_finish = on_finish
-        self.title("Financial Setup")
-        self.geometry("600x500")
-        self.configure(bg="#16241d")  # dark green background
-        self.envelopes = []
-        ctk.CTkLabel(
-            self,
-            text="Welcome! Let's set up your finances.",
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#a8ffb0",  # light green
-            bg_color="#16241d"
-        ).pack(pady=20)
-        self.balance_entry = ctk.CTkEntry(
-            self,
-            placeholder_text="Enter your current balance",
-            fg_color="#1e3a2f",
-            border_color="#2e8b57",
-            text_color="#a8ffb0"
-        )
-        self.balance_entry.pack(pady=10, ipady=5, ipadx=5)
-        ctk.CTkLabel(
-            self,
-            text="Create Envelopes for Essential Expenses",
-            font=ctk.CTkFont(size=16),
-            text_color="#7ed6a7",
-            bg_color="#16241d"
-        ).pack(pady=10)
-        input_frame = ctk.CTkFrame(self, fg_color="#1e3a2f")
-        input_frame.pack(pady=5, padx=10)
-        self.envelope_name = ctk.CTkEntry(
-            input_frame,
-            placeholder_text="Envelope Name (e.g., Water)",
-            fg_color="#22382a",
-            border_color="#2e8b57",
-            text_color="#a8ffb0"
-        )
-        self.envelope_name.pack(side="left", padx=10, pady=10)
-        self.envelope_amount = ctk.CTkEntry(
-            input_frame,
-            placeholder_text="Amount",
-            fg_color="#22382a",
-            border_color="#2e8b57",
-            text_color="#a8ffb0"
-        )
-        self.envelope_amount.pack(side="left", padx=10, pady=10)
-        add_btn = ctk.CTkButton(
-            input_frame,
-            text="Add",
-            command=self.add_envelope,
-            fg_color="#2e8b57",
-            hover_color="#276f4d",
-            text_color="#fff"
-        )
-        add_btn.pack(side="left", padx=10, pady=10)
-        self.scroll_frame = ctk.CTkScrollableFrame(self, height=200, fg_color="#1e3a2f")
-        self.scroll_frame.pack(padx=20, pady=10, fill="both", expand=True)
-        self.submit_btn = ctk.CTkButton(
-            self,
-            text="Submit",
-            command=self.submit_data,
-            fg_color="#2e8b57",
-            hover_color="#276f4d",
-            text_color="#fff"
-        )
-        self.submit_btn.pack(pady=20)
+
 
     def add_envelope(self):
         name = self.envelope_name.get()
@@ -346,7 +318,7 @@ class PostSignupWindow(ctk.CTk):
                 text=f"{name}: ₱{amount}",
                 font=("Arial", 14),
                 text_color="#a8ffb0",
-                bg_color="#1e3a2f"
+                bg_color="#183c2a"
             )
             label.pack(anchor="w", padx=10, pady=5)
             self.envelopes.append((name, amount))
@@ -477,8 +449,11 @@ def show_login_page():
 
 
 
+
 def show_dashboard_page(user_name):
-    messagebox.showinfo("Welcome", f"Welcome, {user_name}! (Dashboard coming soon)")
+    root.destroy()  # Close the login/signup window
+    app = Navigation()
+    app.mainloop()
 
 
 
@@ -704,8 +679,8 @@ def reset_password(email_or_username):
     show_login_page()  # After reset, go back to the login page
 
 
-ctk.set_appearance_mode("light")  # we used customtkinter for the theme of our software.
-ctk.set_default_color_theme("blue")
+ctk.set_appearance_mode("dark")  # Switch to dark mode
+ctk.set_default_color_theme("dark-blue")
 
 root = ctk.CTk()
 root.geometry("600x625")
