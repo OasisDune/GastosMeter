@@ -1,42 +1,53 @@
-
 import customtkinter as ctk
-from tkinter import PhotoImage
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter.messagebox
-from PIL import Image, ImageTk
 
-# theme
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
 
 class OverviewPage(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, get_balance, set_balance, get_total_expenses, transactions, envelopes):
         super().__init__(master, fg_color="#11161e")
+        self.get_balance = get_balance
+        self.set_balance = set_balance
+        self.get_total_expenses = get_total_expenses
+        self.transactions = transactions
+        self.envelopes = envelopes
+
+        # Summary Section
+        summary_frame = ctk.CTkFrame(self, fg_color="#2a2d2e", corner_radius=10)
+        summary_frame.pack(fill="x", padx=(60, 20), pady=10)
+
+        self.total_balance_label = ctk.CTkLabel(summary_frame, text="Total Balance: ₱0.00", font=("Arial", 14, "bold"))
+        self.total_balance_label.grid(row=0, column=0, padx=10, pady=5)
+
+        self.total_expenses_label = ctk.CTkLabel(summary_frame, text="Total Expenses: ₱0.00", font=("Arial", 14, "bold"))
+        self.total_expenses_label.grid(row=0, column=1, padx=10, pady=5)
+
+        self.remaining_budget_label = ctk.CTkLabel(summary_frame, text="Remaining Budget: ₱0.00", font=("Arial", 14, "bold"))
+        self.remaining_budget_label.grid(row=0, column=2, padx=10, pady=5)
+
+        self.top_spending_label = ctk.CTkLabel(summary_frame, text="Top Spending: None", font=("Arial", 14, "bold"))
+        self.top_spending_label.grid(row=0, column=3, padx=10, pady=5)
 
         header = ctk.CTkFrame(self, fg_color="#23c36b", height=210)
         header.pack(fill="x", side="top")
 
-        # wallet
-        alex_love_brittany = ctk.CTkFrame(self, width=300, height=150, fg_color="#19212C")
-        alex_love_brittany.place(relx=0.5, rely=0.2, anchor="n")
+        wallet_frame = ctk.CTkFrame(self, width=300, height=150, fg_color="#19212C")
+        wallet_frame.place(relx=0.5, rely=0.2, anchor="n")
 
-        lextanny_ever = ctk.CTkLabel(alex_love_brittany, text="Wallet", font=("Arial", 15), text_color="white")
-        lextanny_ever.place(relx=0.1, rely=0.1)
+        ctk.CTkLabel(wallet_frame, text="Wallet", font=("Arial", 15), text_color="white").place(relx=0.1, rely=0.1)
 
-        self.current_balance = 0.0  # Initialize balance
         self.balance_label = ctk.CTkLabel(
-            alex_love_brittany,
-            text=f"₱{self.current_balance:,.2f}",  # Format currency
+            wallet_frame,
+            text=f"₱{self.get_balance():,.2f}",
             font=("Arial", 14, "bold"),
             text_color="white"
         )
         self.balance_label.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Edit Balance Button
         edit_balance_btn = ctk.CTkButton(
-            alex_love_brittany,
+            wallet_frame,
             text="Edit Balance",
             fg_color="#355e46",
             hover_color="#3d6e50",
@@ -45,40 +56,45 @@ class OverviewPage(ctk.CTkFrame):
         )
         edit_balance_btn.place(relx=0.5, rely=0.8, anchor="center")
 
-        # contentframe
+        self.warning_label = ctk.CTkLabel(wallet_frame, text="", font=("Arial", 13, "bold"), text_color="red")
+        self.warning_label.place(relx=0.5, rely=0.7, anchor="center")
+
         content_frame = ctk.CTkFrame(self, fg_color="#19212C")
         content_frame.pack(expand=True, fill="both", pady=(170, 70), padx=50)
         content_frame.grid_rowconfigure(0, weight=1)
         content_frame.grid_columnconfigure((0, 1, 2), weight=1)
 
-        # recent transactions part
+        # Transaction History
         transaction_frame = ctk.CTkFrame(content_frame, fg_color="#ffc700", corner_radius=5)
         transaction_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         ctk.CTkLabel(transaction_frame, text="Transaction History", font=("Arial", 16, "bold"),
                      text_color="white").pack(pady=10)
+        # Column titles for transaction history
+        tx_header = ctk.CTkFrame(transaction_frame, fg_color="transparent")
+        tx_header.pack(fill="x", padx=5)
+        ctk.CTkLabel(tx_header, text="Date", font=("Arial", 13, "bold"), width=90, anchor="w").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(tx_header, text="Envelope", font=("Arial", 13, "bold"), width=90, anchor="w").grid(row=0, column=1, sticky="w")
+        ctk.CTkLabel(tx_header, text="Details", font=("Arial", 13, "bold"), width=120, anchor="w").grid(row=0, column=2, sticky="w")
+        ctk.CTkLabel(tx_header, text="Amount", font=("Arial", 13, "bold"), width=80, anchor="w").grid(row=0, column=3, sticky="w")
 
-        # income n expenses part
-        income_box = ctk.CTkFrame(content_frame, fg_color="#1b2f55", corner_radius=5)
-        income_box.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.tx_history_frame = ctk.CTkScrollableFrame(transaction_frame, height=200)
+        self.tx_history_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
-        ctk.CTkLabel(income_box, text="Income VS Expenses", font=("Arial", 16, "bold"), text_color="white").pack(
-            pady=10)
-        fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
-        ax.set_title("")
-        canvas = FigureCanvasTkAgg(fig, master=income_box)
-        canvas_widget = canvas.get_tk_widget()
-        canvas_widget.pack(expand=True, fill="both", padx=10, pady=10)
-
-        # remainingbudget
-        remaining_budget_box = ctk.CTkFrame(content_frame, fg_color="#ffa652", corner_radius=5)
-        remaining_budget_box.grid(row=0, column=2, padx=10, pady=10, sticky="nsew")
-
-        ctk.CTkLabel(remaining_budget_box, text="Remaining Budget", font=("Arial", 16, "bold"),
+        # Envelope List
+        envelope_list_box = ctk.CTkFrame(content_frame, fg_color="#ffa652", corner_radius=5)
+        envelope_list_box.grid(row=0, column=2, padx=10, pady=10, sticky="nsew")
+        ctk.CTkLabel(envelope_list_box, text="Envelope List", font=("Arial", 16, "bold"),
                      text_color="white").pack(pady=(7, 5))
+        # Column titles for envelope list
+        env_header = ctk.CTkFrame(envelope_list_box, fg_color="transparent")
+        env_header.pack(fill="x", padx=5)
+        ctk.CTkLabel(env_header, text="Envelope", font=("Arial", 13, "bold"), width=120, anchor="w").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(env_header, text="Amount", font=("Arial", 13, "bold"), width=80, anchor="w").grid(row=0, column=1, sticky="w")
 
-        remaining_amount = 0.0
-        ctk.CTkLabel(remaining_budget_box, text=f"₱{remaining_amount:,.2f}", font=("Arial", 15, "bold"),
-                     text_color="white").pack(pady=(0, 5))
+        self.envelope_list_frame = ctk.CTkScrollableFrame(envelope_list_box, height=200)
+        self.envelope_list_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+        self.update_overview()
 
     def open_edit_balance_dialog(self):
         dialog = ctk.CTkToplevel(self)
@@ -86,30 +102,71 @@ class OverviewPage(ctk.CTkFrame):
         dialog.geometry("300x150")
         dialog.grab_set()
 
-        # Center the dialog
-        dialog.update_idletasks()
-        w = 300
-        h = 150
-        x = self.winfo_rootx() + (self.winfo_width() // 2) - (w // 2)
-        y = self.winfo_rooty() + (self.winfo_height() // 2) - (h // 2)
-        dialog.geometry(f"{w}x{h}+{x}+{y}")
-
         ctk.CTkLabel(dialog, text="New Balance (₱):", font=("Arial", 14)).pack(pady=(20, 5))
         balance_entry = ctk.CTkEntry(dialog, width=200)
-        balance_entry.insert(0, str(self.current_balance))
+        balance_entry.insert(0, str(self.get_balance()))
         balance_entry.pack(pady=5)
 
         def save_balance():
             try:
                 new_balance = float(balance_entry.get())
-                self.current_balance = new_balance
-                self.balance_label.configure(text=f"₱{self.current_balance:,.2f}")
+                self.set_balance(new_balance)
+                self.update_overview()
                 dialog.destroy()
             except ValueError:
                 tkinter.messagebox.showerror("Error", "Please enter a valid number.")
 
         save_btn = ctk.CTkButton(dialog, text="Save", fg_color="#23c36b", font=("Arial", 14, "bold"), command=save_balance)
         save_btn.pack(pady=20)
+
+    def update_overview(self):
+        total_balance = sum(self.envelopes.values())
+        total_expenses = self.get_total_expenses()
+        remaining_budget = total_balance - total_expenses
+        top_spending = None
+        if self.envelopes:
+            top_spending = max(self.envelopes, key=lambda k: self.envelopes[k])
+        self.total_balance_label.configure(text=f"Total Balance: ₱{total_balance:,.2f}")
+        self.total_expenses_label.configure(text=f"Total Expenses: ₱{total_expenses:,.2f}")
+        self.remaining_budget_label.configure(text=f"Remaining Budget: ₱{remaining_budget:,.2f}")
+        self.top_spending_label.configure(text=f"Top Spending: {top_spending if top_spending else 'None'}")
+
+        balance = self.get_balance()
+        expenses = self.get_total_expenses()
+        self.balance_label.configure(text=f"₱{balance:,.2f}")
+        if expenses > balance:
+            self.warning_label.configure(text="Warning: You are over budget!")
+        else:
+            self.warning_label.configure(text="")
+
+        # Update transaction history
+        for widget in self.tx_history_frame.winfo_children():
+            widget.destroy()
+        if not self.transactions:
+            ctk.CTkLabel(self.tx_history_frame, text="No transactions yet.", text_color="gray").pack()
+        else:
+            for tx in self.transactions[::-1]:
+                row = ctk.CTkFrame(self.tx_history_frame, fg_color="transparent")
+                row.pack(fill="x", padx=0, pady=1)
+                ctk.CTkLabel(row, text=tx.get('date', ''), width=90, anchor="w", font=("Arial", 13)).grid(row=0, column=0, sticky="w")
+                ctk.CTkLabel(row, text=tx['envelope'], width=90, anchor="w", font=("Arial", 13)).grid(row=0, column=1, sticky="w")
+                ctk.CTkLabel(row, text=tx['details'], width=120, anchor="w", font=("Arial", 13)).grid(row=0, column=2, sticky="w")
+                ctk.CTkLabel(row, text=f"₱{tx['amount']:,.2f}", width=80, anchor="w", font=("Arial", 13)).grid(row=0, column=3, sticky="w")
+
+        # Update envelope list
+        for widget in self.envelope_list_frame.winfo_children():
+            widget.destroy()
+        if not self.envelopes:
+            ctk.CTkLabel(self.envelope_list_frame, text="No envelopes yet.", text_color="gray").pack()
+        else:
+            for name, amount in self.envelopes.items():
+                row = ctk.CTkFrame(self.envelope_list_frame, fg_color="transparent")
+                row.pack(fill="x", padx=0, pady=2)
+                ctk.CTkLabel(row, text=name, width=120, anchor="w", font=("Arial", 14)).grid(row=0, column=0, sticky="w")
+                ctk.CTkLabel(row, text=f"₱{amount:,.2f}", width=80, anchor="w", font=("Arial", 14)).grid(row=0, column=1, sticky="w")
+
+
+# ... (rest of the code remains unchanged, including ProfilePage, EnvelopeBudgetingFrame, and Navigation)
 
 
 class ProfilePage(ctk.CTkFrame):
@@ -120,7 +177,7 @@ class ProfilePage(ctk.CTkFrame):
                 "name": "Alex",
                 "email": "alex@email.com",
                 "joined": "2024-01-01",
-                "password": "password123",  # For demonstration only
+                "password": "password123",
             }
         self.user_data = user_data
 
@@ -141,14 +198,6 @@ class ProfilePage(ctk.CTkFrame):
         dialog.geometry("400x320")
         dialog.grab_set()
 
-        # Center the dialog
-        dialog.update_idletasks()
-        w = 400
-        h = 320
-        x = self.winfo_rootx() + (self.winfo_width() // 2) - (w // 2)
-        y = self.winfo_rooty() + (self.winfo_height() // 2) - (h // 2)
-        dialog.geometry(f"{w}x{h}+{x}+{y}")
-
         ctk.CTkLabel(dialog, text="Name:", font=("Arial", 14)).pack(pady=(20, 5))
         name_entry = ctk.CTkEntry(dialog, width=300)
         name_entry.insert(0, self.user_data["name"])
@@ -168,7 +217,7 @@ class ProfilePage(ctk.CTkFrame):
             self.user_data["email"] = email_entry.get()
             new_password = password_entry.get()
             if new_password:
-                self.user_data["password"] = new_password  # In real apps, hash and store securely
+                self.user_data["password"] = new_password
             self.name_label.configure(text=self.user_data["name"])
             self.email_label.configure(text=self.user_data["email"])
             dialog.destroy()
@@ -177,13 +226,14 @@ class ProfilePage(ctk.CTkFrame):
         save_btn.pack(pady=30)
 
 
-class EnvelopeBudgetingFrame(ctk.CTkFrame):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.envelopes = {}
-        self.transactions = []
 
-        # ----- Envelope Creation Section -----
+class EnvelopeBudgetingFrame(ctk.CTkFrame):
+    def __init__(self, parent, envelopes, transactions, update_overview_callback):
+        super().__init__(parent)
+        self.envelopes = envelopes
+        self.transactions = transactions
+        self.update_overview_callback = update_overview_callback
+
         frame_left = ctk.CTkFrame(self)
         frame_left.pack(side="left", fill="both", expand=True, padx=20, pady=20)
 
@@ -202,10 +252,15 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
         envelope_list_label = ctk.CTkLabel(frame_left, text="Envelope List", font=("Arial", 16, "bold"))
         envelope_list_label.pack(pady=(15, 2))
 
+        # Envelope list column headers
+        env_header = ctk.CTkFrame(frame_left, fg_color="transparent")
+        env_header.pack(fill="x", padx=5)
+        ctk.CTkLabel(env_header, text="Envelope", font=("Arial", 13, "bold"), width=120, anchor="w").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(env_header, text="Amount", font=("Arial", 13, "bold"), width=80, anchor="w").grid(row=0, column=1, sticky="w")
+
         self.envelope_list_frame = ctk.CTkScrollableFrame(frame_left, height=200)
         self.envelope_list_frame.pack(fill="both", expand=True, padx=0, pady=(0, 10))
 
-        # ----- Expense Entry & Transaction History Section -----
         frame_right = ctk.CTkFrame(self)
         frame_right.pack(side="left", fill="both", expand=True, padx=20, pady=20)
 
@@ -213,8 +268,12 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
         title2.pack(pady=10)
 
         self.envelope_var = ctk.StringVar()
-        self.envelope_dropdown = ctk.CTkOptionMenu(frame_right, variable=self.envelope_var, values=[])
+        self.envelope_dropdown = ctk.CTkOptionMenu(frame_right, variable=self.envelope_var, values=list(self.envelopes.keys()))
         self.envelope_dropdown.pack(pady=5)
+
+        ctk.CTkLabel(frame_right, text="Date (YYYY-MM-DD):", font=("Arial", 14)).pack(pady=(5, 0))
+        self.transaction_date_entry = ctk.CTkEntry(frame_right, placeholder_text="YYYY-MM-DD")
+        self.transaction_date_entry.pack(pady=5)
 
         self.transaction_details_entry = ctk.CTkEntry(frame_right, placeholder_text="Transaction Details")
         self.transaction_details_entry.pack(pady=5)
@@ -227,6 +286,14 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
 
         transaction_history_label = ctk.CTkLabel(frame_right, text="Transaction History", font=("Arial", 16, "bold"))
         transaction_history_label.pack(pady=(15, 2))
+
+        # Transaction history column headers
+        tx_header = ctk.CTkFrame(frame_right, fg_color="transparent")
+        tx_header.pack(fill="x", padx=5)
+        ctk.CTkLabel(tx_header, text="Date", font=("Arial", 13, "bold"), width=90, anchor="w").grid(row=0, column=0, sticky="w")
+        ctk.CTkLabel(tx_header, text="Envelope", font=("Arial", 13, "bold"), width=90, anchor="w").grid(row=0, column=1, sticky="w")
+        ctk.CTkLabel(tx_header, text="Details", font=("Arial", 13, "bold"), width=120, anchor="w").grid(row=0, column=2, sticky="w")
+        ctk.CTkLabel(tx_header, text="Amount", font=("Arial", 13, "bold"), width=80, anchor="w").grid(row=0, column=3, sticky="w")
 
         self.transaction_history_frame = ctk.CTkScrollableFrame(frame_right, height=250)
         self.transaction_history_frame.pack(fill="both", expand=True, padx=0, pady=(0, 10))
@@ -249,6 +316,7 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
                 self.envelope_amount_entry.delete(0, ctk.END)
                 self.update_envelope_menu()
                 self.update_envelope_list()
+                self.update_overview_callback()
             except ValueError:
                 tkinter.messagebox.showerror("Error", "Amount must be a number.")
         else:
@@ -259,25 +327,31 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
 
     def add_expense(self):
         selected_envelope = self.envelope_var.get()
+        date = self.transaction_date_entry.get()
         details = self.transaction_details_entry.get()
         amount = self.transaction_amount_entry.get()
-        if selected_envelope and details and amount:
+        if selected_envelope and date and details and amount:
             try:
                 amount = float(amount)
                 if self.envelopes[selected_envelope] >= amount:
                     self.envelopes[selected_envelope] -= amount
                     self.transactions.append({
                         "envelope": selected_envelope,
+                        "date": date,
                         "details": details,
                         "amount": amount
                     })
-                    tkinter.messagebox.showinfo("Expense Added",
-                        f"₱{amount:.2f} deducted from '{selected_envelope}'. Remaining: ₱{self.envelopes[selected_envelope]:.2f}")
+                    tkinter.messagebox.showinfo(
+                        "Expense Added",
+                        f"₱{amount:.2f} deducted from '{selected_envelope}'. Remaining: ₱{self.envelopes[selected_envelope]:.2f}"
+                    )
+                    self.transaction_date_entry.delete(0, ctk.END)
                     self.transaction_details_entry.delete(0, ctk.END)
                     self.transaction_amount_entry.delete(0, ctk.END)
                     self.update_envelope_list()
                     self.update_transaction_history()
                     self.update_total_expenses()
+                    self.update_overview_callback()
                 else:
                     tkinter.messagebox.showerror("Error", "Not enough balance in envelope.")
             except ValueError:
@@ -292,7 +366,11 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
             ctk.CTkLabel(self.envelope_list_frame, text="No envelopes yet.", text_color="gray").pack()
         else:
             for name, amount in self.envelopes.items():
-                ctk.CTkLabel(self.envelope_list_frame, text=f"{name}: ₱{amount:,.2f}", anchor="w", font=("Arial", 14)).pack(fill="x", padx=10, pady=2)
+                row = ctk.CTkFrame(self.envelope_list_frame, fg_color="transparent")
+                row.pack(fill="x", padx=0, pady=2)
+                ctk.CTkLabel(row, text=name, width=120, anchor="w", font=("Arial", 14)).grid(row=0, column=0, sticky="w")
+                ctk.CTkLabel(row, text=f"₱{amount:,.2f}", width=80, anchor="w", font=("Arial", 14)).grid(row=0, column=1, sticky="w")
+        self.update_envelope_menu()
 
     def update_transaction_history(self):
         for widget in self.transaction_history_frame.winfo_children():
@@ -301,17 +379,23 @@ class EnvelopeBudgetingFrame(ctk.CTkFrame):
             ctk.CTkLabel(self.transaction_history_frame, text="No transactions yet.", text_color="gray").pack()
         else:
             for tx in self.transactions[::-1]:
-                ctk.CTkLabel(
-                    self.transaction_history_frame,
-                    text=f"{tx['envelope']} | {tx['details']} | ₱{tx['amount']:,.2f}",
-                    anchor="w",
-                    font=("Arial", 13)
-                ).pack(fill="x", padx=10, pady=1)
+                row = ctk.CTkFrame(self.transaction_history_frame, fg_color="transparent")
+                row.pack(fill="x", padx=0, pady=1)
+                ctk.CTkLabel(row, text=tx.get('date', ''), width=90, anchor="w", font=("Arial", 13)).grid(row=0, column=0, sticky="w")
+                ctk.CTkLabel(row, text=tx['envelope'], width=90, anchor="w", font=("Arial", 13)).grid(row=0, column=1, sticky="w")
+                ctk.CTkLabel(row, text=tx['details'], width=120, anchor="w", font=("Arial", 13)).grid(row=0, column=2, sticky="w")
+                ctk.CTkLabel(row, text=f"₱{tx['amount']:,.2f}", width=80, anchor="w", font=("Arial", 13)).grid(row=0, column=3, sticky="w")
         self.update_total_expenses()
 
     def update_total_expenses(self):
         total_expenses = sum(tx['amount'] for tx in self.transactions)
         self.total_expenses_label.configure(text=f"Total Expenses: ₱{total_expenses:,.2f}")
+
+
+
+
+
+
 
 
 class Navigation(ctk.CTk):
@@ -360,6 +444,17 @@ class Navigation(ctk.CTk):
             text_color="white", command=lambda: self.navigate_to("Logout")
         )
 
+        self.balance = 0.0
+        self.user_data = {
+            "name": "Alex",
+            "email": "alex@email.com",
+            "joined": "2024-01-01",
+            "password": "password123"
+        }
+        self.envelopes = {}
+        self.transactions = []
+        self.overview_page = None
+
         self.navigate_to("Overview")
 
     def toggle_sidebar(self):
@@ -377,21 +472,64 @@ class Navigation(ctk.CTk):
             self.toggle_button_floating.place_forget()
             self.sidebar_visible = True
 
+
+    def reset_data(self):
+        self.envelopes.clear()
+        self.transactions.clear()
+        self.set_balance(0.0)
+        tkinter.messagebox.showinfo("Reset Data", "All data has been reset.")
+        self.update_overview()
+
+    def get_balance(self):
+        return self.balance
+
+    def set_balance(self, value):
+        self.balance = value
+        if self.overview_page:
+            self.overview_page.update_overview()
+
+    def get_total_expenses(self):
+        return sum(tx['amount'] for tx in self.transactions)
+
+    def update_overview(self):
+        if self.overview_page:
+            self.overview_page.update_overview()
+
     def navigate_to(self, page_name):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
 
         if page_name == "Overview":
-            overview_page = OverviewPage(self.content_frame)
-            overview_page.pack(fill="both", expand=True)
+            self.overview_page = OverviewPage(
+                self.content_frame,
+                get_balance=self.get_balance,
+                set_balance=self.set_balance,
+                get_total_expenses=self.get_total_expenses,
+                transactions=self.transactions,
+                envelopes=self.envelopes
+            )
+            self.overview_page.pack(fill="both", expand=True)
 
         elif page_name == "Profile":
-            profile_page = ProfilePage(self.content_frame)
+            profile_page = ProfilePage(self.content_frame, user_data=self.user_data)
             profile_page.pack(fill="both", expand=True)
 
         elif page_name == "Edit Info":
-            budgeting_frame = EnvelopeBudgetingFrame(self.content_frame)
+            budgeting_frame = EnvelopeBudgetingFrame(
+                self.content_frame,
+                envelopes=self.envelopes,
+                transactions=self.transactions,
+                update_overview_callback=self.update_overview
+            )
             budgeting_frame.pack(fill="both", expand=True)
+
+
+
+        # Update the SettingsPage instantiation in the Navigation class
+
+        # Update the SettingsPage instantiation in the Navigation class
+
+
 
         else:
             label = ctk.CTkLabel(
